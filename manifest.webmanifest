@@ -1,0 +1,9 @@
+{
+  "name": "RPN Financial Calculator",
+  "short_name": "RPN 12C",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": []
+}

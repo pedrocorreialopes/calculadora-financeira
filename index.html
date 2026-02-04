@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Simulador de calculadora financeira RPN inspirado na HP 12C Platinum (não afiliado)." />
+
+  <meta property="og:title" content="RPN Financial Calculator" />
+  <meta property="og:description" content="Simulador RPN com funções financeiras (TVM, NPV/IRR, AMORT) e persistência local." />
+  <meta property="og:type" content="website" />
+
+  <title>RPN Financial Calculator (estilo 12C Platinum)</title>
+
+  <!-- Fonte: carregamento rápido (swap) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Critical CSS (acima da dobra) -->
+  <style>
+    :root{color-scheme:dark;--bg:#0b0f14;--panel:#0f1622;--panel2:#0c121c;--text:#e8eef7;--muted:#a9b6c8;--stroke:#1f2a3b;--accent:#57c3ff;--warn:#ffcc66;--fn:#85ffb4;--key:#121b29;--key2:#0f1826;--shadow:0 20px 60px rgba(0,0,0,.45);--radius:18px;--gap:10px;--font:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:var(--font);background:radial-gradient(1200px 700px at 20% -10%,rgba(87,195,255,.18),transparent 60%),radial-gradient(900px 600px at 120% 10%,rgba(133,255,180,.10),transparent 60%),var(--bg);color:var(--text)}
+    .skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .skip:focus{left:12px;top:12px;width:auto;height:auto;padding:10px 12px;background:#000;border:1px solid var(--stroke);border-radius:10px;z-index:9999}
+    header{padding:20px 16px 0;max-width:1100px;margin:0 auto}
+    .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .brand{display:flex;flex-direction:column;gap:6px}
+    .brand h1{margin:0;font-size:16px;letter-spacing:.2px}
+    .brand p{margin:0;color:var(--muted);font-size:12px;line-height:1.35}
+    .badge{display:inline-flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--fn);box-shadow:0 0 0 4px rgba(133,255,180,.08)}
+    main{max-width:1100px;margin:0 auto;padding:16px 16px 40px;display:grid;grid-template-columns:1fr;gap:16px}
+    .shell{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .calc{display:grid;grid-template-columns:1fr;gap:0}
+    .display{padding:18px 16px 14px;border-bottom:1px solid var(--stroke);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
+    .lcd{border:1px solid rgba(87,195,255,.18);background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.12));border-radius:14px;padding:14px 14px 12px;position:relative;contain:content}
+    .lcd__row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .lcd__left{display:flex;gap:10px;align-items:center;min-width:140px}
+    .mode{font-size:11px;color:var(--muted)}
+    .mode strong{color:var(--text);font-weight:600}
+    .value{font-variant-numeric:tabular-nums;letter-spacing:.5px;font-size:28px;font-weight:700;text-align:right;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stack{margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;color:var(--muted);font-size:11px}
+    .stack__cell{border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px;background:rgba(255,255,255,.02)}
+    .stack__cell b{display:block;color:var(--text);font-size:12px;margin-bottom:4px}
+    nav.controls{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--stroke)}
+    .toggles{display:flex;flex-wrap:wrap;gap:8px}
+    .toggle{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--stroke);background:rgba(255,255,255,.02);padding:8px 10px;border-radius:999px}
+    .toggle input{accent-color:var(--accent)}
+    .toggle label{font-size:12px;color:var(--muted)}
+    .right-actions{display:flex;gap:8px}
+    .btn{border:1px solid var(--stroke);background:rgba(255,255,255,.02);color:var(--text);padding:8px 10px;border-radius:10px;font-size:12px;cursor:pointer;transition:transform .08s ease,background .2s ease,border-color .2s ease}
+    .btn:hover{background:rgba(255,255,255,.04)}
+    .btn:active{transform:translateY(1px)}
+    .btn:focus-visible{outline:3px solid rgba(87,195,255,.35);outline-offset:2px}
+    .keys{padding:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap)}
+    .key{appearance:none;border:1px solid rgba(255,255,255,.10);background:linear-gradient(180deg,var(--key),var(--key2));color:var(--text);border-radius:14px;padding:10px 10px 9px;min-height:54px;cursor:pointer;position:relative;contain:layout paint;transition:transform .06s ease,filter .2s ease,border-color .2s ease}
+    .key:hover{filter:brightness(1.05)}
+    .key:active{transform:translateY(1px)}
+    .key:focus-visible{outline:3px solid rgba(87,195,255,.35);outline-offset:2px}
+    .key__top{position:absolute;left:10px;top:7px;right:10px;display:flex;justify-content:space-between;gap:8px;font-size:10px;line-height:1;color:var(--muted)}
+    .key__top .f{color:var(--warn)}
+    .key__top .g{color:var(--fn)}
+    .key__main{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:100%}
+    .key__label{font-weight:700;font-size:14px;letter-spacing:.2px}
+    .key__kbd{font-size:10px;color:rgba(232,238,247,.70)}
+    .key--wide{grid-column:span 2}
+    .key--accent{border-color:rgba(87,195,255,.30)}
+    .key--danger{border-color:rgba(255,102,102,.25)}
+
+    aside.help{padding:14px 16px;color:var(--muted);border-left:1px solid var(--stroke)}
+    .help h2{margin:0 0 8px;font-size:14px;color:var(--text)}
+    .help p{margin:0 0 10px;font-size:12px;line-height:1.5}
+    .help code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
+
+    footer{max-width:1100px;margin:0 auto;padding:0 16px 30px;color:var(--muted);font-size:12px}
+
+    @media (min-width: 768px){
+      main{grid-template-columns: 1.2fr .8fr;align-items:start}
+      .calc{grid-template-columns: 1fr}
+      .shell{display:grid;grid-template-columns: 1fr}
+      .help{border-left:0;border-top:1px solid var(--stroke)}
+    }
+    @media (min-width: 1024px){
+      .shell{grid-template-columns: 1fr 360px}
+      .help{border-top:0;border-left:1px solid var(--stroke)}
+      .value{font-size:32px}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important;transition:none !important;animation:none !important}
+    }
+  </style>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- SEO estruturado -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "RPN Financial Calculator",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "description": "Simulador de calculadora financeira RPN inspirado na HP 12C Platinum (não afiliado).",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "BRL"}
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#app">Pular para a calculadora</a>
+
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <h1>RPN Financial Calculator <span class="badge"><span class="dot" aria-hidden="true"></span><span>offline-ready</span></span></h1>
+        <p>Inspirada na experiência da HP 12C Platinum (sem afiliação). RPN, TVM, Cash Flow, NPV/IRR, AMORT e persistência local.</p>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" aria-label="Aplicativo de calculadora financeira">
+    <article class="shell" aria-label="Calculadora">
+      <section class="calc" aria-label="Display e teclado">
+        <header class="display" aria-label="Display">
+          <div class="lcd" role="group" aria-label="Visor">
+            <div class="lcd__row">
+              <div class="lcd__left">
+                <div class="mode" aria-live="polite">
+                  <span id="modeRpn" title="Modo de entrada">RPN</span>
+                  • <strong id="modeBeginEnd">END</strong>
+                  • <strong id="mode12x1x">12×</strong>
+                  • <span id="modeDayCount">30/360</span>
+                </div>
+              </div>
+              <div class="value" id="display" aria-live="polite">0,00</div>
+            </div>
+            <div class="stack" aria-label="Pilha (T Z Y X)">
+              <div class="stack__cell"><b>T</b><span id="tVal">0,00</span></div>
+              <div class="stack__cell"><b>Z</b><span id="zVal">0,00</span></div>
+              <div class="stack__cell"><b>Y</b><span id="yVal">0,00</span></div>
+              <div class="stack__cell"><b>X</b><span id="xVal">0,00</span></div>
+            </div>
+          </div>
+        </header>
+
+        <nav class="controls" aria-label="Configurações e ações">
+          <div class="toggles" role="group" aria-label="Modos">
+            <span class="toggle">
+              <input type="checkbox" id="toggleBegin" />
+              <label for="toggleBegin">BEGIN</label>
+            </span>
+            <span class="toggle">
+              <input type="checkbox" id="toggle12x" checked />
+              <label for="toggle12x">12×</label>
+            </span>
+            <span class="toggle">
+              <input type="checkbox" id="toggleDayCount" />
+              <label for="toggleDayCount">ACT/ACT</label>
+            </span>
+          </div>
+          <div class="right-actions" role="group" aria-label="Ações rápidas">
+            <button class="btn" id="btnHelp" type="button">Ajuda</button>
+            <button class="btn" id="btnReset" type="button">Reset</button>
+          </div>
+        </nav>
+
+        <section class="keys" aria-label="Teclas">
+          <!-- Linha 1 -->
+          <button class="key" data-key="f" aria-label="Shift f">
+            <span class="key__top"><span class="f">f</span><span></span></span>
+            <span class="key__main"><span class="key__label">f</span><span class="key__kbd">F</span></span>
+          </button>
+          <button class="key" data-key="g" aria-label="Shift g">
+            <span class="key__top"><span></span><span class="g">g</span></span>
+            <span class="key__main"><span class="key__label">g</span><span class="key__kbd">G</span></span>
+          </button>
+          <button class="key key--danger" data-key="clear" aria-label="CLEAR (limpar tudo)">
+            <span class="key__top"><span class="f">CLR</span><span class="g">MEM</span></span>
+            <span class="key__main"><span class="key__label">CLEAR</span><span class="key__kbd">Esc</span></span>
+          </button>
+          <button class="key" data-key="clx" aria-label="CLx (limpar X)">
+            <span class="key__top"><span class="f">CLx</span><span class="g">←</span></span>
+            <span class="key__main"><span class="key__label">CLx</span><span class="key__kbd">Back</span></span>
+          </button>
+          <button class="key" data-key="enter" aria-label="ENTER">
+            <span class="key__top"><span class="f">LASTx</span><span class="g">R↓</span></span>
+            <span class="key__main"><span class="key__label">ENTER</span><span class="key__kbd">Enter</span></span>
+          </button>
+
+          <!-- Linha 2 -->
+          <button class="key" data-key="sto" aria-label="STO (armazenar)">
+            <span class="key__top"><span class="f">STO</span><span class="g">RCL</span></span>
+            <span class="key__main"><span class="key__label">STO</span><span class="key__kbd">S</span></span>
+          </button>
+          <button class="key" data-key="rcl" aria-label="RCL (recuperar)">
+            <span class="key__top"><span class="f">RCL</span><span class="g">STO</span></span>
+            <span class="key__main"><span class="key__label">RCL</span><span class="key__kbd">R</span></span>
+          </button>
+          <button class="key" data-key="chs" aria-label="CHS (trocar sinal)">
+            <span class="key__top"><span class="f">ABS</span><span class="g">%</span></span>
+            <span class="key__main"><span class="key__label">CHS</span><span class="key__kbd">~</span></span>
+          </button>
+          <button class="key" data-key="eex" aria-label="EEX">
+            <span class="key__top"><span class="f">SCI</span><span class="g">ENG</span></span>
+            <span class="key__main"><span class="key__label">EEX</span><span class="key__kbd">E</span></span>
+          </button>
+          <button class="key" data-key="swap" aria-label="x↔y">
+            <span class="key__top"><span class="f">x↔y</span><span class="g">LSTx</span></span>
+            <span class="key__main"><span class="key__label">x↔y</span><span class="key__kbd">X</span></span>
+          </button>
+
+          <!-- Linha 3 -->
+          <button class="key" data-key="7"><span class="key__top"><span class="f">N</span><span class="g">CF0</span></span><span class="key__main"><span class="key__label">7</span><span class="key__kbd">7</span></span></button>
+          <button class="key" data-key="8"><span class="key__top"><span class="f">I/Y</span><span class="g">CFj</span></span><span class="key__main"><span class="key__label">8</span><span class="key__kbd">8</span></span></button>
+          <button class="key" data-key="9"><span class="key__top"><span class="f">PV</span><span class="g">Nj</span></span><span class="key__main"><span class="key__label">9</span><span class="key__kbd">9</span></span></button>
+          <button class="key" data-key="div"><span class="key__top"><span class="f">FV</span><span class="g">IRR</span></span><span class="key__main"><span class="key__label">÷</span><span class="key__kbd">/</span></span></button>
+          <button class="key" data-key="sqrt"><span class="key__top"><span class="f">√</span><span class="g">NPV</span></span><span class="key__main"><span class="key__label">√</span><span class="key__kbd">Q</span></span></button>
+
+          <!-- Linha 4 -->
+          <button class="key" data-key="4"><span class="key__top"><span class="f">PMT</span><span class="g">AMORT</span></span><span class="key__main"><span class="key__label">4</span><span class="key__kbd">4</span></span></button>
+          <button class="key" data-key="5"><span class="key__top"><span class="f">R/S</span><span class="g">P/YR</span></span><span class="key__main"><span class="key__label">5</span><span class="key__kbd">5</span></span></button>
+          <button class="key" data-key="6"><span class="key__top"><span class="f">n</span><span class="g">BOND</span></span><span class="key__main"><span class="key__label">6</span><span class="key__kbd">6</span></span></button>
+          <button class="key" data-key="mul"><span class="key__top"><span class="f">%</span><span class="g">Δ%</span></span><span class="key__main"><span class="key__label">×</span><span class="key__kbd">*</span></span></button>
+          <button class="key" data-key="pow"><span class="key__top"><span class="f">y^x</span><span class="g">DATE</span></span><span class="key__main"><span class="key__label">yˣ</span><span class="key__kbd">^</span></span></button>
+
+          <!-- Linha 5 -->
+          <button class="key" data-key="1"><span class="key__top"><span class="f">1/x</span><span class="g">DAYS</span></span><span class="key__main"><span class="key__label">1</span><span class="key__kbd">1</span></span></button>
+          <button class="key" data-key="2"><span class="key__top"><span class="f">LN</span><span class="g">%T</span></span><span class="key__main"><span class="key__label">2</span><span class="key__kbd">2</span></span></button>
+          <button class="key" data-key="3"><span class="key__top"><span class="f">e^x</span><span class="g">%Δ</span></span><span class="key__main"><span class="key__label">3</span><span class="key__kbd">3</span></span></button>
+          <button class="key" data-key="minus"><span class="key__top"><span class="f">Σ+</span><span class="g">Σ-</span></span><span class="key__main"><span class="key__label">−</span><span class="key__kbd">-</span></span></button>
+          <button class="key" data-key="plus"><span class="key__top"><span class="f">x̄</span><span class="g">s</span></span><span class="key__main"><span class="key__label">+</span><span class="key__kbd">+</span></span></button>
+
+          <!-- Linha 6 -->
+          <button class="key" data-key="0"><span class="key__top"><span class="f">π</span><span class="g">RAND</span></span><span class="key__main"><span class="key__label">0</span><span class="key__kbd">0</span></span></button>
+          <button class="key" data-key="dot"><span class="key__top"><span class="f">FRAC</span><span class="g">INT</span></span><span class="key__main"><span class="key__label">.</span><span class="key__kbd">.</span></span></button>
+          <button class="key" data-key="sum" aria-label="Soma (Σ)">
+            <span class="key__top"><span class="f">CLΣ</span><span class="g">REG</span></span>
+            <span class="key__main"><span class="key__label">Σ</span><span class="key__kbd">;</span></span>
+          </button>
+          <button class="key key--accent" data-key="percent" aria-label="Percentual">
+            <span class="key__top"><span class="f">%</span><span class="g">Δ%</span></span>
+            <span class="key__main"><span class="key__label">%</span><span class="key__kbd">%</span></span>
+          </button>
+          <button class="key key--accent" data-key="equals" aria-label="Igual">
+            <span class="key__top"><span class="f">BST</span><span class="g">GTO</span></span>
+            <span class="key__main"><span class="key__label">=</span><span class="key__kbd">=</span></span>
+          </button>
+        </section>
+      </section>
+
+      <aside class="help" id="help" aria-label="Ajuda" hidden>
+        <h2>Ajuda rápida</h2>
+        <p><strong>RPN:</strong> digite um número, pressione <code>ENTER</code> para empilhar. Operações usam X e Y.</p>
+        <p><strong>Shift:</strong> <code>f</code> (amarelo) e <code>g</code> (verde) alternam a função secundária da próxima tecla.</p>
+        <p><strong>Teclado:</strong> números, <code>Enter</code>, <code>+</code> <code>-</code> <code>*</code> <code>/</code>, <code>Esc</code> (CLEAR), <code>Backspace</code> (CLx), <code>F</code>/<code>G</code> (shifts).</p>
+        <p id="helpStatus" aria-live="polite"></p>
+        <p style="margin-top:12px">Observação: este simulador replica a experiência e as funções, mas não é um produto HP.</p>
+      </aside>
+    </article>
+
+    <section class="shell" aria-label="Painel de estado">
+      <div style="padding:14px 16px">
+        <h2 style="margin:0 0 8px;font-size:14px">Estado</h2>
+        <p style="margin:0 0 10px;color:var(--muted);font-size:12px;line-height:1.5">Registros, TVM e Cash Flow ficam persistidos no seu navegador. Use <strong>Reset</strong> para limpar.</p>
+        <div class="state-grid" id="stateGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© Simulador educacional. Sem afiliação com HP. Layout inspirado (sem uso de marca registrada).</p>
+  </footer>
+
+  <script src="js/app.js" type="module" defer></script>
+</body>
+</html>
