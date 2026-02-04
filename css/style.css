@@ -1,0 +1,56 @@
+/* CSS não-crítico e componentes auxiliares (mantém o critical CSS no HTML) */
+
+:root{
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.state-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.card{
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  border-radius:14px;
+  padding:10px;
+}
+
+.card__title{
+  font-size:11px;
+  color:rgba(232,238,247,.72);
+  margin:0 0 6px;
+}
+
+.card__value{
+  margin:0;
+  font-family:var(--mono);
+  font-size:12px;
+  color:rgba(232,238,247,.92);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.72);
+  border:1px solid rgba(255,255,255,.14);
+  color:#fff;
+  padding:10px 12px;
+  border-radius:999px;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease, transform .2s ease;
+  backdrop-filter: blur(10px);
+}
+.toast--show{opacity:1;transform:translateX(-50%) translateY(-2px)}
+
+@media (min-width:768px){
+  .state-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
